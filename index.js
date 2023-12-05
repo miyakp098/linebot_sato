@@ -16,11 +16,15 @@ const config = {
   
   app.listen(PORT);
   function handleEvent(event) {
+    // イベントがメッセージでない、またはテキストメッセージでない場合は処理しない
+    if (event.type !== "message" || event.message.type !== "text") {
+      return Promise.resolve(null);
+    }
+  
+    // テキストメッセージをそのまま返信
     return client.replyMessage(event.replyToken, {
       type: "text",
       text: event.message.text,
     });
   }
-  if (event.type !== "message" || event.message.type !== "text") {
-    return Promise.resolve(null);
-  }
+  
