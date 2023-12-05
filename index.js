@@ -1,30 +1,43 @@
-import express from "express";
-import { Client, middleware } from "@line/bot-sdk";
+import express from 'express';
+import { Client, middleware } from '@line/bot-sdk';
+
 const config = {
-    channelSecret: process.env.CHANNEL_SECRET,
-    channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-  };
-  const client = new Client(config);
-  const PORT = process.env.PORT || 3000;
-  const app = express();
-  
-  app.post("/", middleware(config), (req, res) => {
-    Promise.all(req.body.events.map(handleEvent)).then((result) =>
-      res.json(result)
-    );
-  });
-  
-  app.listen(PORT);
-  function handleEvent(event) {
-    // イベントがメッセージでない、またはテキストメッセージでない場合は処理しない
-    if (event.type !== "message" || event.message.type !== "text") {
-      return Promise.resolve(null);
+  channelSecret: process.env.CHANNEL_SECRET,
+  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN
+};
+
+const client = new Client(config);
+const app = express();
+
+app.post('/', middleware(config), (req, res) => {
+  Promise.all(req.body.events.map(event => {
+    if (event.type === 'message' && event.message.type === 'text') {
+      if (event.message.text === 'あああ') {
+        // 「あああ」というメッセージの場合、1分後に「AAA」と返信
+        setTimeout(() => {
+          client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: 'AAA'
+          });
+        }, 60000); // 60000ミリ秒 = 1分
+      } else {
+        // それ以外のメッセージの場合、おうむ返し
+        return client.replyMessage(event.replyToken, {
+          type: 'text',
+          text: event.message.text
+        });
+      }
     }
-  
-    // テキストメッセージをそのまま返信
-    return client.replyMessage(event.replyToken, {
-      type: "text",
-      text: event.message.text,
-    });
-  }
-  
+
+    return Promise.resolve(null);
+  })).then(() => res.end())
+  .catch(err => {
+    console.error(err);
+    res.status(500).end();
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
