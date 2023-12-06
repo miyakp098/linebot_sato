@@ -9,36 +9,57 @@ const config = {
 const client = new Client(config);
 const app = express();
 
+// ユーザーの状態を追跡するオブジェクト
+let userStates = {};
+
 app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
+    const userId = event.source.userId;
+
+    // postbackイベントの処理
+    if (event.type === 'postback') {
+      if (event.postback.data === 'yes') {
+        // ユーザーが「はい」と回答した場合
+        userStates[userId] = 'waiting_for_echo';
+        return Promise.resolve(null);
+      } else {
+        // ユーザーが「いいえ」と回答した場合、またはその他のpostback
+        userStates[userId] = 'normal';
+        return Promise.resolve(null);
+      }
+    }
+
+    // メッセージイベントの処理
     if (event.type === 'message' && event.message.type === 'text') {
-      if (event.message.text === 'あああ') {
-        // 「あああ」というメッセージの場合、10秒後に「AAA」と返信
+      if (userStates[userId] === 'waiting_for_echo') {
+        // おうむ返し待ちの場合
         setTimeout(() => {
           client.replyMessage(event.replyToken, {
             type: 'text',
-            text: 'AAA'
+            text: event.message.text // おうむ返し
           });
-        }, 10000); // 10秒
+          userStates[userId] = 'normal'; // 状態をリセット
+        }, 10000); // 10秒後
+        return Promise.resolve(null);
       } else {
-        // それ以外のメッセージの場合、ボタンを表示
+        // 通常の場合、はい/いいえのボタンを表示
+        userStates[userId] = 'waiting_for_answer';
         return client.replyMessage(event.replyToken, {
           type: 'template',
-          altText: 'ボタンを選択してください',
+          altText: 'はいまたはいいえを選択してください',
           template: {
-            type: 'buttons',
-            title: 'ボタンのタイトル',
-            text: 'ボタンを選択してください',
+            type: 'confirm',
+            text: '続けますか？',
             actions: [
               {
                 type: 'postback',
-                label: 'ボタン1',
-                data: 'action=button1'
+                label: 'はい',
+                data: 'yes'
               },
               {
                 type: 'postback',
-                label: 'ボタン2',
-                data: 'action=button2'
+                label: 'いいえ',
+                data: 'no'
               }
             ]
           }
