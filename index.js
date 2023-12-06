@@ -10,20 +10,29 @@ const client = new Client(config);
 const app = express();
 
 const userStates = {};
+const waitingMessages = {};
 
 app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
 
-      // 「はい」と答えた場合の処理
       if (userStates[userId] === 'waiting_for_reply') {
         userStates[userId] = 'normal';
-        // ここにオウム返しの実装を追加
-        return client.replyMessage(event.replyToken, {
-          type: 'text',
-          text: event.message.text // オウム返しのメッセージ
-        });
+
+        // 10秒後にオウム返しを実行
+        setTimeout(() => {
+          if (waitingMessages[userId]) {
+            client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: waitingMessages[userId]
+            });
+            delete waitingMessages[userId];
+          }
+        }, 10000); // 10000ミリ秒 = 10秒
+
+        waitingMessages[userId] = event.message.text;
+        return Promise.resolve(null);
       }
 
       if (userStates[userId] === 'waiting_for_yes') {
