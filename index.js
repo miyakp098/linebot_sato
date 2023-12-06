@@ -9,34 +9,19 @@ const config = {
 const client = new Client(config);
 const app = express();
 
-// ユーザーの状態を追跡するためのオブジェクト
-let userStates = {};
-
 app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
     if (event.type === 'message' && event.message.type === 'text') {
-      const userId = event.source.userId;
-
-      if (text.startsWith('RE')) {
-        // 'RE' 以降のテキストを取得
-        const replyText = text.substring(2).trim();
-        // ユーザーの状態を「待機中」に設定
-        userStates[userId] = 'waiting';
-
-        // 20秒後に「AAA」と返信
+      if (event.message.text === 'あああ') {
+        // 「あああ」というメッセージの場合、20秒後に「AAA」と返信
         setTimeout(() => {
-          if (userStates[userId] === 'waiting') {
-            client.replyMessage(event.replyToken, {
-              type: 'text',
-              text: replyText
-            });
-
-            // ユーザーの状態をリセット
-            userStates[userId] = 'normal';
-          }
-        }, 20000);
-      } else if (!userStates[userId] || userStates[userId] === 'normal') {
-        // 通常のおうむ返し
+          client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: 'AAA'
+          });
+        }, 20000); // 20秒
+      } else {
+        // それ以外のメッセージの場合、おうむ返し
         return client.replyMessage(event.replyToken, {
           type: 'text',
           text: event.message.text
