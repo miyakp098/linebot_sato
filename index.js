@@ -9,36 +9,45 @@ const config = {
 const client = new Client(config);
 const app = express();
 
-// ユーザーの状態を追跡するためのオブジェクト
-let userStates = {};
-
 app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
     if (event.type === 'message' && event.message.type === 'text') {
-      const userId = event.source.userId;
-
       if (event.message.text === 'あああ') {
-        // ユーザーの状態を「待機中」に設定
-        userStates[userId] = 'waiting';
-
-        // 20秒後に「AAA」と返信
+        // 「あああ」というメッセージの場合、20秒後に「AAA」と返信
         setTimeout(() => {
-          if (userStates[userId] === 'waiting') {
-            client.replyMessage(event.replyToken, {
-              type: 'text',
-              text: 'AAA'
-            });
-
-            // ユーザーの状態をリセット
-            userStates[userId] = 'normal';
-          }
-        }, 10000);
-      } else if (!userStates[userId] || userStates[userId] === 'normal') {
-        // 通常のおうむ返し
-        return client.replyMessage(event.replyToken, {
-          type: 'text',
-          text: event.message.text
-        });
+          client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: 'AAA'
+          });
+        }, 10000); // 20秒
+      } else {
+        // ボタンテンプレートメッセージを送信
+      return client.replyMessage(event.replyToken, {
+        type: 'template',
+        altText: 'これはボタンテンプレートです',
+        template: {
+          type: 'buttons',
+          title: 'タイトル',
+          text: '選択してください',
+          actions: [
+            {
+              type: 'postback',
+              label: 'ボタン1',
+              data: 'action=buy&itemid=123'
+            },
+            {
+              type: 'message',
+              label: 'ボタン2',
+              text: 'ボタン2が押されました'
+            },
+            {
+              type: 'uri',
+              label: 'ボタン3',
+              uri: 'https://example.com'
+            }
+          ]
+        }
+      });
       }
     }
 
