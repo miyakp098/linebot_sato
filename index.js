@@ -13,41 +13,36 @@ app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
     if (event.type === 'message' && event.message.type === 'text') {
       if (event.message.text === 'あああ') {
-        // 「あああ」というメッセージの場合、20秒後に「AAA」と返信
+        // 「あああ」というメッセージの場合、10秒後に「AAA」と返信
         setTimeout(() => {
           client.replyMessage(event.replyToken, {
             type: 'text',
             text: 'AAA'
           });
-        }, 10000); // 20秒
+        }, 10000); // 10秒
       } else {
-        // ボタンテンプレートメッセージを送信
-      return client.replyMessage(event.replyToken, {
-        type: 'template',
-        altText: 'これはボタンテンプレートです',
-        template: {
-          type: 'buttons',
-          title: 'タイトル',
-          text: '選択してください',
-          actions: [
-            {
-              type: 'postback',
-              label: 'ボタン1',
-              data: 'action=buy&itemid=123'
-            },
-            {
-              type: 'message',
-              label: 'ボタン2',
-              text: 'ボタン2が押されました'
-            },
-            {
-              type: 'uri',
-              label: 'ボタン3',
-              uri: 'https://example.com'
-            }
-          ]
-        }
-      });
+        // それ以外のメッセージの場合、ボタンを表示
+        return client.replyMessage(event.replyToken, {
+          type: 'template',
+          altText: 'ボタンを選択してください',
+          template: {
+            type: 'buttons',
+            title: 'ボタンのタイトル',
+            text: 'ボタンを選択してください',
+            actions: [
+              {
+                type: 'postback',
+                label: 'ボタン1',
+                data: 'action=button1'
+              },
+              {
+                type: 'postback',
+                label: 'ボタン2',
+                data: 'action=button2'
+              }
+            ]
+          }
+        });
       }
     }
 
