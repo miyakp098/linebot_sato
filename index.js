@@ -18,25 +18,19 @@ app.post('/', middleware(config), (req, res) => {
       const userId = event.source.userId;
 
       if (userStates[userId] === 'waiting_for_reply') {
-        // おうむ返し待ちの場合は無視
-        return Promise.resolve(null);
+        // 10秒後におうむ返し
+        setTimeout(() => {
+            userStates[userId] = 'waiting_for_reply';
+          }, 10000);
       }
 
       if (userStates[userId] === 'waiting_for_yes') {
         // 「はい」と答えた場合の処理
         if (event.message.text === 'はい') {
           userStates[userId] = 'waiting_for_reply';
-
-          // 10秒後におうむ返し
-          setTimeout(() => {
+        }else if(event.message.text === 'いいえ') {
             userStates[userId] = 'normal';
-          }, 10000);
-
-          return Promise.resolve(null);
         }
-
-        // 「いいえ」と答えた場合、またはそれ以外の場合は状態をリセット
-        userStates[userId] = 'normal';
       }
 
       // 初期状態または状態リセット後の処理
