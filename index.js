@@ -9,7 +9,6 @@ const config = {
 const client = new Client(config);
 const app = express();
 
-// ユーザーの状態を管理するオブジェクト
 const userStates = {};
 
 app.post('/', middleware(config), (req, res) => {
@@ -17,30 +16,24 @@ app.post('/', middleware(config), (req, res) => {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
 
+      // 「はい」と答えた場合の処理
       if (userStates[userId] === 'waiting_for_reply') {
-        // おうむ返しの状態であれば、メッセージをおうむ返しして状態をリセット
-        userStates[userId] = 'normal'; // 状態をリセット
+        userStates[userId] = 'normal';
+        // ここにオウム返しの実装を追加
         return client.replyMessage(event.replyToken, {
           type: 'text',
-          text: event.message.text // ユーザーのメッセージをそのまま返す
+          text: event.message.text // オウム返しのメッセージ
         });
       }
 
       if (userStates[userId] === 'waiting_for_yes') {
-        // 「はい」と答えた場合の処理
         if (event.message.text === 'はい') {
           userStates[userId] = 'waiting_for_reply';
-
-          // 10秒後におうむ返し状態をリセット
-          setTimeout(() => {
-            userStates[userId] = 'normal';
-          }, 10000);
-
-          return Promise.resolve(null);
+          return Promise.resolve(null); // この場合は返信不要
+        } else if (event.message.text === 'いいえ') {
+          userStates[userId] = 'normal';
+          return Promise.resolve(null); // この場合も返信不要
         }
-
-        // 「いいえ」と答えた場合、またはそれ以外の場合は状態をリセット
-        userStates[userId] = 'normal';
       }
 
       // 初期状態または状態リセット後の処理
@@ -52,21 +45,12 @@ app.post('/', middleware(config), (req, res) => {
           type: 'confirm',
           text: '次のメッセージを10秒後におうむ返ししますか？',
           actions: [
-            {
-              type: 'message',
-              label: 'はい',
-              text: 'はい'
-            },
-            {
-              type: 'message',
-              label: 'いいえ',
-              text: 'いいえ'
-            }
+            { type: 'message', label: 'はい', text: 'はい' },
+            { type: 'message', label: 'いいえ', text: 'いいえ' }
           ]
         }
       });
     }
-
     return Promise.resolve(null);
   })).then(() => res.end())
   .catch(err => {
