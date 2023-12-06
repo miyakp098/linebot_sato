@@ -11,16 +11,22 @@ const app = express();
 
 const userStates = {};
 const waitingMessages = {};
+const ignoreMessages = {};
 
 app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
 
+      // 10秒間、メッセージを無視する
+      if (ignoreMessages[userId]) {
+        return Promise.resolve(null);
+      }
+
       if (userStates[userId] === 'waiting_for_reply') {
         userStates[userId] = 'normal';
+        ignoreMessages[userId] = true;
 
-        // 10秒後にオウム返しを実行
         setTimeout(() => {
           if (waitingMessages[userId]) {
             client.replyMessage(event.replyToken, {
@@ -29,7 +35,8 @@ app.post('/', middleware(config), (req, res) => {
             });
             delete waitingMessages[userId];
           }
-        }, 10000); // 10000ミリ秒 = 10秒
+          delete ignoreMessages[userId];
+        }, 10000); // 10秒後にオウム返し
 
         waitingMessages[userId] = event.message.text;
         return Promise.resolve(null);
@@ -38,10 +45,10 @@ app.post('/', middleware(config), (req, res) => {
       if (userStates[userId] === 'waiting_for_yes') {
         if (event.message.text === 'はい') {
           userStates[userId] = 'waiting_for_reply';
-          return Promise.resolve(null); // この場合は返信不要
+          return Promise.resolve(null);
         } else if (event.message.text === 'いいえ') {
           userStates[userId] = 'normal';
-          return Promise.resolve(null); // この場合も返信不要
+          return Promise.resolve(null);
         }
       }
 
