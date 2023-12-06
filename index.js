@@ -9,62 +9,58 @@ const config = {
 const client = new Client(config);
 const app = express();
 
-// ユーザーの状態を追跡するオブジェクト
-let userStates = {};
+// ユーザーの状態を管理するオブジェクト
+const userStates = {};
 
 app.post('/', middleware(config), (req, res) => {
   Promise.all(req.body.events.map(event => {
-    const userId = event.source.userId;
-
-    // postbackイベントの処理
-    if (event.type === 'postback') {
-      if (event.postback.data === 'yes') {
-        // ユーザーが「はい」と回答した場合
-        userStates[userId] = 'waiting_for_echo';
-        return Promise.resolve(null);
-      } else {
-        // ユーザーが「いいえ」と回答した場合、またはその他のpostback
-        userStates[userId] = 'normal';
-        return Promise.resolve(null);
-      }
-    }
-
-    // メッセージイベントの処理
     if (event.type === 'message' && event.message.type === 'text') {
-      if (userStates[userId] === 'waiting_for_echo') {
-        // おうむ返し待ちの場合
-        setTimeout(() => {
-          client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: event.message.text // おうむ返し
-          });
-          userStates[userId] = 'normal'; // 状態をリセット
-        }, 10000); // 10秒後
+      const userId = event.source.userId;
+
+      if (userStates[userId] === 'waiting_for_reply') {
+        // おうむ返し待ちの場合は無視
         return Promise.resolve(null);
-      } else {
-        // 通常の場合、はい/いいえのボタンを表示
-        userStates[userId] = 'waiting_for_answer';
-        return client.replyMessage(event.replyToken, {
-          type: 'template',
-          altText: 'はいまたはいいえを選択してください',
-          template: {
-            type: 'confirm',
-            text: '続けますか？',
-            actions: [
-              {
-                type: 'postback',
-                label: 'はい',
-                data: 'yes'
-              },
-              {
-                type: 'postback',
-                label: 'いいえ',
-                data: 'no'
-              }
-            ]
-          }
-        });
       }
+
+      if (userStates[userId] === 'waiting_for_yes') {
+        // 「はい」と答えた場合の処理
+        if (event.message.text === 'はい') {
+          userStates[userId] = 'waiting_for_reply';
+
+          // 10秒後におうむ返し
+          setTimeout(() => {
+            userStates[userId] = 'normal';
+          }, 10000);
+
+          return Promise.resolve(null);
+        }
+
+        // 「いいえ」と答えた場合、またはそれ以外の場合は状態をリセット
+        userStates[userId] = 'normal';
+      }
+
+      // 初期状態または状態リセット後の処理
+      userStates[userId] = 'waiting_for_yes';
+      return client.replyMessage(event.replyToken, {
+        type: 'template',
+        altText: 'はい or いいえを選択してください',
+        template: {
+          type: 'confirm',
+          text: '次のメッセージを10秒後におうむ返ししますか？',
+          actions: [
+            {
+              type: 'message',
+              label: 'はい',
+              text: 'はい'
+            },
+            {
+              type: 'message',
+              label: 'いいえ',
+              text: 'いいえ'
+            }
+          ]
+        }
+      });
     }
 
     return Promise.resolve(null);
