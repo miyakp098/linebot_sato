@@ -2,4 +2,4 @@
 .DS_Store
 
 # フォルダ除外
-.node_modules/
+node_modules/
