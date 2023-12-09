@@ -18,7 +18,6 @@ app.post('/', middleware(config), (req, res) => {
     if (event.type === 'message' && event.message.type === 'text') {
       const userId = event.source.userId;
 
-      // 10秒間、メッセージを無視する
       if (ignoreMessages[userId]) {
         return Promise.resolve(null);
       }
@@ -26,6 +25,8 @@ app.post('/', middleware(config), (req, res) => {
       if (userStates[userId] === 'waiting_for_reply') {
         userStates[userId] = 'normal';
         ignoreMessages[userId] = true;
+
+        const delay = parseInt(userStates[userId + '_delay'], 10) || 10000; // デフォルトは 10 秒
 
         setTimeout(() => {
           if (waitingMessages[userId]) {
@@ -36,33 +37,32 @@ app.post('/', middleware(config), (req, res) => {
             delete waitingMessages[userId];
           }
           delete ignoreMessages[userId];
-        }, 10000); // 10秒後にオウム返し
+        }, delay);
 
         waitingMessages[userId] = event.message.text;
         return Promise.resolve(null);
       }
 
-      if (userStates[userId] === 'waiting_for_yes') {
-        if (event.message.text === 'はい') {
+      if (userStates[userId] === 'choosing_delay') {
+        if (['10秒', '20秒', '30秒'].includes(event.message.text)) {
           userStates[userId] = 'waiting_for_reply';
-          return Promise.resolve(null);
-        } else if (event.message.text === 'いいえ') {
-          userStates[userId] = 'normal';
+          userStates[userId + '_delay'] = event.message.text.split('秒')[0] * 1000; // 秒数をミリ秒に変換
           return Promise.resolve(null);
         }
       }
 
       // 初期状態または状態リセット後の処理
-      userStates[userId] = 'waiting_for_yes';
+      userStates[userId] = 'choosing_delay';
       return client.replyMessage(event.replyToken, {
         type: 'template',
-        altText: 'はい or いいえを選択してください',
+        altText: '何秒後に返信しますか？',
         template: {
-          type: 'confirm',
-          text: '次のメッセージを10秒後におうむ返ししますか？',
+          type: 'buttons',
+          text: '何秒後におうむ返ししますか？',
           actions: [
-            { type: 'message', label: 'はい', text: 'はい' },
-            { type: 'message', label: 'いいえ', text: 'いいえ' }
+            { type: 'message', label: '10秒後', text: '10秒' },
+            { type: 'message', label: '20秒後', text: '20秒' },
+            { type: 'message', label: '30秒後', text: '30秒' }
           ]
         }
       });
