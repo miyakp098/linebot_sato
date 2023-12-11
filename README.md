@@ -11,7 +11,7 @@
 さりげない情報伝達: ユーザーが直接言うのが難しい場合に、間接的に情報を伝えることができます。
 シーンに応じた利用: 様々な社交的な場面で役立ちます。例えば飲み会の場合、早く帰る必要があることを周囲の人に知らせたい時などに便利です。
 ## 使い方
-[使い方の動画リンク](https://line.me/R/ti/p/@080csbha?from=page&liff.referrer=https%3A%2F%2Fwww.youtube.com%2F&accountId=080csbha)</br>
+[使い方の動画リンク](https://www.youtube.com/watch?v=_3pQASmFiC8)</br>
 </br>
 1.メッセージの送信
 - まず、任意のメッセージ（例: 「あ」）を送信します。
